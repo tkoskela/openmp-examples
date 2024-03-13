@@ -13,7 +13,7 @@
 #include <string.h>
 #include <omp.h>
 
-static void initGPU();
+//static void initGPU();
 
 int main(int argc, char** argv)
 {
@@ -26,11 +26,11 @@ int main(int argc, char** argv)
     const double tol = 1.0e-5;
     double err = 1.0;
 
-    double* restrict const A	= malloc( n*m * sizeof(double) );
-    double* restrict const Anew	= malloc( n*m * sizeof(double) );
-    double* restrict const y0	= malloc( n   * sizeof(double) );
+    double* restrict const A	= (double*)malloc( n*m * sizeof(double) );
+    double* restrict const Anew	= (double*)malloc( n*m * sizeof(double) );
+    double* restrict const y0	= (double*)malloc( n   * sizeof(double) );
 
-   initGPU();
+    //initGPU();
 
     for( j = 0; j < n; j++)
     {
@@ -64,25 +64,29 @@ int main(int argc, char** argv)
     int iter = 0;
 
 
-    //TODO: use OpenAMP to accelerate the most time consuming loop on a GPU
+    //TODO: use OpenMP to accelerate the most time consuming loop on a GPU
     //TODO: denote all needed clauses
+
+#pragma omp target data map(to:Anew[0:n*m]) map(tofrom:A[0:n*m]) 
+    {
     while ( err > tol && iter < iter_max ) {
 
 	err = 0.0;
-
-        for( j = 1; j < n-1; j++) {
+#pragma omp target teams distribute parallel for simd map(tofrom:err)
+	  for( j = 1; j < n-1; j++) {
             for( i = 1; i < m-1; i++ ) {
-                Anew[j *m+ i] = 0.25 * ( A[j     *m+ (i+1)] + A[j     *m+ (i-1)]
-                                     +   A[(j-1) *m+ i]     + A[(j+1) *m+ i]);
-                err = fmax(err,fabs(Anew[j*m+i]-A[j*m+i]));
+	      Anew[j *m+ i] = 0.25 * ( A[j     *m+ (i+1)] + A[j     *m+ (i-1)]
+				       +   A[(j-1) *m+ i]     + A[(j+1) *m+ i]);
+	      err = fmax(err,fabs(Anew[j*m+i]-A[j*m+i]));
             }
-        }
+	  }
 
-        for( j = 1; j < n-1; j++) {
+#pragma omp target teams distribute parallel for simd
+	  for( j = 1; j < n-1; j++) {
             for( i = 1; i < m-1; i++ ) {
-                A[j *m+ i] = Anew[j *m+ i];
+	      A[j *m+ i] = Anew[j *m+ i];
             }
-        }
+	  }
 
         if(iter % 10 == 0) {
             printf("%5d, %0.6f\n", iter, err);
@@ -90,6 +94,7 @@ int main(int argc, char** argv)
 
         iter++;
     } // end while
+    }
     double runtime = omp_get_wtime() - starttime;
 
 
@@ -102,10 +107,10 @@ int main(int argc, char** argv)
     return 0;
 }
 
-static void initGPU() {
+//static void initGPU() {
 
-#pragma omp target
-	{
-	}
+  //#pragma omp target
+  //	{
+  //	}
 
-}
+//}

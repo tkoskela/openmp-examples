@@ -1,10 +1,15 @@
-all: jacobi.gpu-v100 jacobi.sol.gpu-v100
+all: jacobi.gpu-v100 #jacobi.sol.gpu-v100
 
 jacobi.gpu-v100: Makefile jacobi.c
-	clang $(DEBUG) -O3 -fopenmp -fopenmp-targets=nvptx64-nvidia-cuda -Xopenmp-target -march=sm_70 -lm -o jacobi.gpu-v100 jacobi.c
+	nvc++ $(DEBUG) -fopenmp -mp=gpu -gpu=sm_70 -o jacobi.gpu-v100 jacobi.c
+#	clang $(DEBUG) -O3 -fopenmp -fopenmp-targets=nvptx64 -march=sm_70 -o jacobi.gpu-v100 jacobi.c
+
+#
 
 jacobi.sol.gpu-v100: Makefile jacobi.c
-	clang $(DEBUG) -O3 -fopenmp -fopenmp-targets=nvptx64-nvidia-cuda -Xopenmp-target -march=sm_70 -lm -o jacobi.sol.gpu-v100 jacobi.sol.c
+
+
+#$(CC) $(DEBUG) -O3 -fopenmp -fopenmp-targets=nvptx64-nvidia-cuda -Xopenmp-target -march=sm_70 -lm -o jacobi.sol.gpu-v100 jacobi.sol.c
 
 clean:
 	rm -f *.o
